@@ -1,0 +1,10 @@
+{
+    "ecmaFeatures": {
+        "classes": true,
+        "arrowFunctions": true,
+        "blockBindings": true,
+        "forOf": true,
+        "defaultParams": true,
+        "templateStrings": true,
+    }
+}
