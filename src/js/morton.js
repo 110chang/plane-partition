@@ -31,18 +31,6 @@ y\x 0  1
 
 var spaceFilters = [];
 
-function getDiscreteBits(n, f) {
-  let b = n.toString(2);
-  b = b.length < 2 ? '0' + b : b;
-  return b.split('').reverse().filter(f).reverse().join('');
-}
-function getEvenBits(n) {
-  return getDiscreteBits(n, (e, i) => i % 2 === 0);
-}
-function getOddBits(n) {
-  return getDiscreteBits(n, (e, i) => i % 2 !== 0);
-}
-
 class Morton {
   constructor(x, y) {
     if (x == null) {
@@ -61,12 +49,18 @@ class Morton {
     n = (n | (n << 8)) & 0x00ff00ff;
     n = (n | (n << 4)) & 0x0f0f0f0f;
     n = (n | (n << 2)) & 0x33333333;
-    return (n | (n << 1)) & 0x55555555;//"01010101010101010101010101010101"
+    return (n | (n << 1)) & 0x55555555;
+  }
+  static bitPack32(n) {
+    n = (n & 0x33333333) | ((n & 0x44444444) >> 1);
+    n = (n & 0x0f0f0f0f) | ((n & 0x30303030) >> 2);
+    n = (n & 0x00ff00ff) | ((n & 0x0f000f00) >> 4);
+    return (n & 0x0000ffff) | ((n & 0x00ff0000) >> 8);
   }
   static reverse(n) {
     return {
-      x: parseInt(getEvenBits(n), 2),
-      y: parseInt(getOddBits(n), 2)
+      x: Morton.bitPack32(n & 0x55555555),
+      y: Morton.bitPack32((n & 0xAAAAAAAA) >> 1)
     }
   }
   static getSpace(morton, lvl, max = Morton.MAX_LVL) {
@@ -78,11 +72,9 @@ class Morton {
     return (morton & filter) >> (max - lvl) * 2;
   }
   static belongs(a, b, lvl, max = Morton.MAX_LVL) {
-    // aは最大レベルのMorton、 bは最小レベルから探索
-    a = Morton.getSpace(a, lvl);
-    //let shiftA = (max - lvl) * 2;
-    //let shiftB = 0;//~~Math.floor(b.toString(2).length - 2);
-    return a === b;
+    let f = Math.pow(2, lvl * 2) - 1 << (max - lvl) * 2;
+
+    return ((a & f) >> (max - lvl) * 2) === b;
   }
 
   static getOwnSpace(morton) {
@@ -99,7 +91,7 @@ class Morton {
   }
 }
 
-Morton.MAX_LVL = 3;
+Morton.MAX_LVL = 8;
 
 module.exports = Morton;
 

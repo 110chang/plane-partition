@@ -13,6 +13,11 @@ describe('Morton', function() {
     o = new Morton(45);
   });
 
+  it('should pack bits', function() {
+    expect(Morton.bitPack32(45 & 0x55555555)).toBe(3);
+    expect(Morton.bitPack32(28 & 0x55555555)).toBe(6);
+  });
+
   it('should convert coords to Morton Order', function() {
     expect(m.number).toBe(45);
     expect(n.number).toBe(28);

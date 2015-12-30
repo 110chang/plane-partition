@@ -18,6 +18,7 @@ class Cells {
       throw new Error('data length incorrect.')
     }
     this.data = [];
+    this.mem = {};
     this.register(data, width, height);
   }
   register(data, width, height) {
@@ -27,27 +28,37 @@ class Cells {
     var u = pow(2, Morton.MAX_LVL);
     console.time('read data');
     for (i = 0; i < data.length; i += 4) {
-      //事前処理
-      var r = data[i];
-      var g = data[i + 1];
-      var b = data[i + 2];
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
       let _x = floor(x / width * u);
       let _y = floor(y / height * u);
       let morton = (bitSeperate32(_x) | (bitSeperate32(_y) << 1));
       this.data.push(new Cell(_x, _y, morton, r, g, b));
-      //console.log(r, g, b);
+
       if (++x === width) {
         x = 0;
         y++;
       }
     }
     console.timeEnd('read data');
-    console.log(this.data);
   }
   find(lvl, morton) {
-    return this.data.filter((cell) => {
+    let field = this.data;
+    let result;
+    if (this.mem[lvl - 1] && this.mem[lvl - 1][morton >> 2]) {
+      field = this.mem[lvl - 1][morton >> 2];
+    }
+    result = field.filter((cell) => {
       return Morton.belongs(cell.morton, morton, lvl);
-    })
+    });
+    if (!this.mem[lvl]) {
+      this.mem[lvl] = {};
+    }
+    if (!this.mem[lvl][morton]) {
+      this.mem[lvl][morton] = result;
+    }
+    return result;
   }
 }
 

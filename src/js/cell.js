@@ -16,6 +16,4 @@ class Cell {
   }
 }
 
-//color.luminosity();  // 0.412 
-
 module.exports = Cell;

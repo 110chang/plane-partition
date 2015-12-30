@@ -6,17 +6,17 @@
 require("native-promise-only");
 
 var ss = require("simple-statistics");
+var Color = require('color');
 
-var graygrid = require("./graygrid");
 var Cells = require("./cells");
 var Morton = require("./morton");
 var LQTree = require("./lqtree");
 var LQNode = require("./lqnode");
 var NullNode = require("./nullnode");
 
-var bitSeperate32 = Morton.bitSeperate32;
 var round = Math.round;
 var pow = Math.pow;
+var average = ss.average;
 
 document.addEventListener('DOMContentLoaded', (e) => {
   console.log('Entry point');
@@ -41,94 +41,117 @@ document.addEventListener('DOMContentLoaded', (e) => {
     var context = canvas.getContext('2d');
     context.drawImage(image, 0, 0, image.width, image.height);
 
-    //console.log(context.getImageData(0,0,image.width, image.height).data);
     var dataArr = context.getImageData(0,0,image.width, image.height).data;
-    console.time('read data');
-    console.log(dataArr.length / 4);
+
     if (dataArr.length % 4 !== 0) {
       throw new Error('data length incorrect.')
     }
 
     var cells = new Cells(dataArr, image.width, image.height);
 
-    // test cells
-    //cells.data.forEach((cell) => {
-    //  let m = Morton.reverse(cell.morton);
-    //  let u = pow(2, Morton.MAX_LVL);
-    //  let w = image.width / u;
-    //  let h = image.height / u;
-    //  context.beginPath();
-    //  context.fillStyle = `rgb(${cell.r},${cell.g},${cell.b})`;
-    //  context.fillRect(m.x * w, m.y * h, w, h);
-    //  context.closePath();
-    //});
+    var tree = new LQTree((node) => node.ro < 18);
 
-    var tree = new LQTree((node) => node.ro < 50);
-
-    console.log(tree);
-
-    var a = Morton.belongs(0, 2, 1);
-    var b = Morton.belongs(1, 2, 1);
-    var c = Morton.belongs(2, 2, 1);
-    var d = Morton.belongs(3, 2, 1);
-    var e = Morton.belongs(45, 45, 1);
-    var f = Morton.belongs(46, 45, 1);
-    var g = Morton.belongs(47, 45, 1);
-    var h = Morton.belongs(48, 45, 1);
-
-    console.log(a, b, c, d);
-    console.log(e, f, g, h);
-
-
+    console.time('register data');
     while(!tree.isPointerMax()) {
-      console.log(tree.level, tree.getMorton(), tree.getSpace());
+      //console.time('find cells');
       let temp = cells.find(tree.level, tree.getMorton());
-      console.log(temp);
+      //console.timeEnd('find cells');
       // color average
-      let r = round(ss.average(temp.map((cell) => cell.r)));
-      let g = round(ss.average(temp.map((cell) => cell.g)));
-      let b = round(ss.average(temp.map((cell) => cell.b)));
+      //console.time('avarage colors');
+      //let r = average(temp.map((cell) => cell.r));
+      //let g = average(temp.map((cell) => cell.g));
+      //let b = average(temp.map((cell) => cell.b));
+      let l = temp.length;
+      let rTotal = 0;
+      let gTotal = 0;
+      let bTotal = 0;
+
+      for (let i = 0; i < l; i++) {
+        rTotal += temp[i].r;
+        gTotal += temp[i].g;
+        bTotal += temp[i].b;
+      };
+      //console.timeEnd('avarage colors');
 
       // standard deviation of luminance
       let ro = ss.standardDeviation(temp.map((cell) => cell.luminance));
 
-      tree.add(new LQNode(r, g, b, ro, tree.getMorton(), tree.level));
+      tree.add(new LQNode(rTotal / l, gTotal / l, bTotal / l, ro, tree.getMorton(), tree.level));
     }
-    console.log(tree.data);
+    console.timeEnd('register data');
 
-    //var cellcanvas = document.getElementById('cells');
-    //cellcanvas.width = pow(2, Morton.MAX_LVL);
-    //cellcanvas.height = pow(2, Morton.MAX_LVL);
-    //var cellctx = cellcanvas.getContext('2d');
-    //cellctx.fillStyle = '#000';
-    //cellctx.fillRect(0, 0, cellcanvas.width, cellcanvas.height);
-
-    /*tree.data.forEach((node) => {
-      //console.log(node === null, node instanceof NullNode);
+    console.time('draw data 1');
+    tree.data.forEach((node) => {
       if (node instanceof LQNode) {
-        //console.log(node);
-        let color = `rgb(${node.r},${node.g},${node.b})`;
-        let negate = `rgb(${node.color.negate().rgbArray().join(',')})`;
+        let color = Color().rgb([node.r, node.g, node.b])
+        let positive = `rgb(${color.saturate(0.5).rgbArray().join(',')})`;
+        //let negative = `rgb(${color.clone().negate().rgbArray().join(',')})`;
+        //let glow = `rgba(${color.clone().lighten(0.5).rgbArray().join(',')},0.2)`;
+        //let vivid = `rgb(${color.clone().saturate(0.5).rgbArray().join(',')},0.2)`;
         let w = image.width / pow(2, node.level);
         let h = image.height / pow(2, node.level);
         let m = Morton.reverse(node.morton);
-        //console.log(w * m.x, h * m.y, w, h);
+        let magnify = 1;
+        let left = w * m.x * magnify;
+        let right = w * m.x * magnify + w * magnify;
+        let top = h * m.y * magnify;
+        let bottom = h * m.y * magnify + h * magnify;
+
         context.beginPath();
-        context.fillStyle = color;
-        context.strokeStyle = negate;
+        context.fillStyle = positive;
+        context.fillRect(left, top, w * magnify, h * magnify);
+
+        context.beginPath();
+        context.strokeStyle = '#FFF';
         context.lineWidth = 0.2;
-        context.fillRect(w * m.x, h * m.y, w, h);
-        context.moveTo(w * m.x, h * m.y);
-        context.lineTo(w * m.x + w, h * m.y + h);
-        context.moveTo(w * m.x + w, h * m.y);
-        context.lineTo(w * m.x, h * m.y + h);
-        context.fillStyle = negate;
-        context.textAlign = 'center';
-        context.fillText(~~node.ro, w * m.x + w / 2, h * m.y + h / 2);
+        context.moveTo(left, top);
+        context.lineTo(right, bottom);
+        context.moveTo(right, top);
+        context.lineTo(left, bottom);
         context.closePath();
         context.stroke();
       }
-    });*/
+    });
+    console.timeEnd('draw data 1');
+
+    console.time('draw data 2');
+    var finish = document.getElementById('finish');
+    finish.width = image.width * 2;
+    finish.height = image.height * 2;
+
+    var ctx_fin = finish.getContext('2d');
+    tree.data.forEach((node) => {
+      if (node instanceof LQNode) {
+        let color = Color().rgb([node.r, node.g, node.b])
+        let positive = `rgb(${color.saturate(0.5).rgbArray().join(',')})`;
+        //let negative = `rgb(${color.clone().negate().rgbArray().join(',')})`;
+        //let glow = `rgba(${color.clone().lighten(0.5).rgbArray().join(',')},0.2)`;
+        //let vivid = `rgb(${color.clone().saturate(0.5).rgbArray().join(',')},0.2)`;
+        let w = image.width / pow(2, node.level);
+        let h = image.height / pow(2, node.level);
+        let m = Morton.reverse(node.morton);
+        let magnify = 2;
+        let left = w * m.x * magnify;
+        let right = w * m.x * magnify + w * magnify;
+        let top = h * m.y * magnify;
+        let bottom = h * m.y * magnify + h * magnify;
+
+        ctx_fin.beginPath();
+        ctx_fin.fillStyle = positive;
+        ctx_fin.fillRect(left, top, w * magnify, h * magnify);
+
+        ctx_fin.beginPath();
+        ctx_fin.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx_fin.lineWidth = 0.3;
+        ctx_fin.moveTo(left, top);
+        ctx_fin.lineTo(right, bottom);
+        ctx_fin.moveTo(right, top);
+        ctx_fin.lineTo(left, bottom);
+        ctx_fin.closePath();
+        ctx_fin.stroke();
+      }
+    });
+    console.timeEnd('draw data 2');
   });
 }, false);
 

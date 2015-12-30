@@ -1,7 +1,6 @@
 
 'use strict';
 
-var Color = require('color');
 var NullNode = require("./nullnode");
 
 // Liner Quaternary Node
@@ -14,7 +13,6 @@ class LQNode extends NullNode {
     this.r = r;
     this.g = g;
     this.b = b;
-    this.color = Color({r:r,g:g,b:b});
     this.morton = morton;
     this.level = level;
   }

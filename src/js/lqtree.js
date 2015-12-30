@@ -28,15 +28,8 @@ class LQTree {
     this.registered = [];
   }
   add(node) {
-    //console.log(this.filter(node), this.getParentData() !== null);
-    //if (node !== undefined) {
-      //console.log(node instanceof NullNode);
-      //console.log(node instanceof LQNode);
-      //console.log(this.getMorton().toString(2), this.getParentData());
-
     var parentData = this.getParentData();
-    //console.log(this.level);
-
+    this.data[this.pointer] = node;
     if (parentData === null || parentData instanceof LQNode) {
       // 親データが null または木ノード -> null
       this.data[this.pointer] = null;
@@ -45,26 +38,20 @@ class LQTree {
       if (this.filter(node)) {
         // 標準偏差が閾値以下 -> 登録する
         this.data[this.pointer] = node;
-      } else if (this.level === 1) {
-        // 最大レベル -> 登録する
-        this.data[this.pointer] = node;
       } else {
         // 標準偏差が閾値以下 -> 空ノードで埋める
         this.data[this.pointer] = new NullNode();
       }
+      //最大レベルなら登録
+      if (this.level === Morton.MAX_LVL) {
+        this.data[this.pointer] = node;
+      }
     }
-    //console.log(parentData, this.data[this.pointer]);
-    //}
-    //console.log(this.data[this.pointer]);
-
     this.pointer++;
 
     if (this.getOffset(this.level + 1) === this.pointer) {
       this.level++;
     }
-    //if (this.level > Morton.MAX_LVL) {
-    //  throw new Error('Maximum tree level exceeded.');
-    //}
   }
   getMorton() {
     return this.pointer - this.getOffset(this.level);
@@ -84,6 +71,7 @@ class LQTree {
     if (level === 0) {
       return new NullNode();
     }
+    //console.log(this.pointer, this.getMorton(), this.getOffset(level - 1) + (morton >> 2));
     return this.data[this.getOffset(level - 1) + (morton >> 2)];
   }
   getOffset(lvl) {
