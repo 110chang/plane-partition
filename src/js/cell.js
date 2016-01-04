@@ -5,9 +5,7 @@
 //cell.js
 
 class Cell {
-  constructor(x, y, m, r, g, b) {
-    this.x = x;
-    this.y = y;
+  constructor(m, r, g, b) {
     this.morton = m;
     this.r = r;
     this.g = g;

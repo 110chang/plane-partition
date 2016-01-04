@@ -16,7 +16,6 @@ var NullNode = require("./nullnode");
 
 var round = Math.round;
 var pow = Math.pow;
-var average = ss.average;
 
 document.addEventListener('DOMContentLoaded', (e) => {
   console.log('Entry point');
@@ -50,33 +49,38 @@ document.addEventListener('DOMContentLoaded', (e) => {
     var cells = new Cells(dataArr, image.width, image.height);
 
     var tree = new LQTree((node) => node.ro < 18);
+    var filter = (node) => node.ro < 18;
 
     console.time('register data');
     while(!tree.isPointerMax()) {
-      //console.time('find cells');
-      let temp = cells.find(tree.level, tree.getMorton());
-      //console.timeEnd('find cells');
-      // color average
-      //console.time('avarage colors');
-      //let r = average(temp.map((cell) => cell.r));
-      //let g = average(temp.map((cell) => cell.g));
-      //let b = average(temp.map((cell) => cell.b));
-      let l = temp.length;
-      let rTotal = 0;
-      let gTotal = 0;
-      let bTotal = 0;
 
-      for (let i = 0; i < l; i++) {
-        rTotal += temp[i].r;
-        gTotal += temp[i].g;
-        bTotal += temp[i].b;
-      };
-      //console.timeEnd('avarage colors');
+      if (tree.isRegisteredBranch()) {
+        tree.add(null);
+      } else {
+        var temp = cells.find(tree.level, tree.morton);
+        
+        // standard deviation of luminance
+        var ro = ss.standardDeviation(temp.map((cell) => cell.luminance));
 
-      // standard deviation of luminance
-      let ro = ss.standardDeviation(temp.map((cell) => cell.luminance));
+        if (ro < 18 || tree.level === Morton.MAX_LVL) {
+          let l = temp.length;
 
-      tree.add(new LQNode(rTotal / l, gTotal / l, bTotal / l, ro, tree.getMorton(), tree.level));
+          // color average
+          let rTotal = 0;
+          let gTotal = 0;
+          let bTotal = 0;
+
+          for (let i = 0; i < l; i++) {
+            rTotal += temp[i].r;
+            gTotal += temp[i].g;
+            bTotal += temp[i].b;
+          };
+
+          tree.add(new LQNode(rTotal / l, gTotal / l, bTotal / l, ro, tree.morton, tree.level));
+        } else {
+          tree.add(new NullNode());
+        }
+      }
     }
     console.timeEnd('register data');
 

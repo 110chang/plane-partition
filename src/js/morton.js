@@ -32,18 +32,14 @@ y\x 0  1
 var spaceFilters = [];
 
 class Morton {
-  constructor(x, y) {
-    if (x == null) {
-      throw new Error('invalid arguments.')
+  static create(x, y) {
+    return Morton.bitSeperate32(x) | (Morton.bitSeperate32(y) << 1);
+  }
+  static reverse(n) {
+    return {
+      x: Morton.bitPack32(n & 0x55555555),
+      y: Morton.bitPack32((n & 0xAAAAAAAA) >> 1)
     }
-    if (y == null) {
-      let m = Morton.reverse(x);
-      y = m.y;
-      x = m.x;
-    }
-    this.x = x;
-    this.y = y;
-    this.number = (Morton.bitSeperate32(x) | (Morton.bitSeperate32(y) << 1));
   }
   static bitSeperate32(n) {
     n = (n | (n << 8)) & 0x00ff00ff;
@@ -57,37 +53,10 @@ class Morton {
     n = (n & 0x00ff00ff) | ((n & 0x0f000f00) >> 4);
     return (n & 0x0000ffff) | ((n & 0x00ff0000) >> 8);
   }
-  static reverse(n) {
-    return {
-      x: Morton.bitPack32(n & 0x55555555),
-      y: Morton.bitPack32((n & 0xAAAAAAAA) >> 1)
-    }
-  }
-  static getSpace(morton, lvl, max = Morton.MAX_LVL) {
-    var filter = spaceFilters[lvl];
-    if (!filter) {
-      let b = Math.pow(2, max * 2 - (lvl * 2 - 1));
-      filter = b | (b >> 1);
-    }
-    return (morton & filter) >> (max - lvl) * 2;
-  }
   static belongs(a, b, lvl, max = Morton.MAX_LVL) {
-    let f = Math.pow(2, lvl * 2) - 1 << (max - lvl) * 2;
-
-    return ((a & f) >> (max - lvl) * 2) === b;
-  }
-
-  static getOwnSpace(morton) {
-    return parseInt(morton.toString(2).slice(-2), 2);
-  }
-  getSpaces() {
-    var result = [];
-    var str = this.number.toString(2);
-    str = str.length % 2 !== 0 ? str = "0" + str : str;
-    str.split('').forEach((e, i) => {
-      i % 2 === 0 ? result[i] = '' + e : result[i - 1] += e;
-    });
-    return result.filter((e) => e !== undefined).map((e) => parseInt(e, 2));
+    //let f = Math.pow(2, lvl * 2) - 1 << (max - lvl) * 2;
+    //return ((a & f) >> (max - lvl) * 2) === b;
+    return a >> (max - lvl) * 2 === b;
   }
 }
 
