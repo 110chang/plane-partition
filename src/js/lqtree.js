@@ -40,11 +40,11 @@ class LQTree {
     }
 
     this.pointer++;
-    this.morton = this.pointer - this.getOffset(this.level);
     // ポインタが次のレベルのオフセットに達したらレベルを上げる
     if (this.getOffset(this.level + 1) === this.pointer) {
       this.level++;
     }
+    this.morton = this.pointer - this.getOffset(this.level);
   }
   getParentMorton(morton, level) {
     morton = typeof morton === 'number' ? morton : this.morton;
