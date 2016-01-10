@@ -1,43 +1,27 @@
 
 'use strict';
 
-// Liner Quaternary Tree
+// Linear Quaternary Tree
 
-var LQNode = require("./lqnode");
-var NullNode = require("./nullnode");
-var Morton = require("./morton");
+let LQNode = require("./lqnode");
+let NullNode = require("./nullnode");
+let Morton = require("./morton");
 
-var floor = Math.floor;
-var pow = Math.pow;
+const floor = Math.floor;
+const pow = Math.pow;
 
-var offsets = [];
+let offsets = [];
 
 class LQTree {
-  constructor(filter) {
-    if (typeof filter !== 'function') {
-      filter = function(node) {
-        return node;
-      }
-    }
-    this.filter = filter;
-
+  constructor() {
     this.morton = 0;
     this.pointer = 0;
     this.level = 0;
     this.maxPointer = this.getOffset(Morton.MAX_LVL + 1);
     this.data = [];
   }
-  isRegisteredBranch() {
-    let parentData = this.getParentData();
-    return parentData === null || parentData instanceof LQNode;
-  }
   add(node) {
     this.data[this.pointer] = node;
-
-    //最大レベルなら登録
-    if (this.level === Morton.MAX_LVL) {
-      this.data[this.pointer] = node;
-    }
 
     this.pointer++;
     // ポインタが次のレベルのオフセットに達したらレベルを上げる
@@ -46,10 +30,15 @@ class LQTree {
     }
     this.morton = this.pointer - this.getOffset(this.level);
   }
-  getParentMorton(morton, level) {
-    morton = typeof morton === 'number' ? morton : this.morton;
-    level = typeof level === 'number' ? level : this.level;
-    return morton >> 2;
+  isMaxLevel() {
+    return this.level === Morton.MAX_LVL;
+  }
+  isPointerExceeded() {
+    return !(this.maxPointer > this.pointer);
+  }
+  isRegisteredBranch() {
+    let parentData = this.getParentData();
+    return parentData === null || parentData instanceof LQNode;
   }
   getParentData(morton, level) {
     morton = typeof morton === 'number' ? morton : this.morton;
@@ -58,7 +47,6 @@ class LQTree {
     if (level === 0) {
       return new NullNode();
     }
-    //console.log(this.pointer, this.getMorton(), this.getOffset(level - 1) + (morton >> 2));
     return this.data[this.getOffset(level - 1) + (morton >> 2)];
   }
   getOffset(lvl) {
@@ -66,9 +54,6 @@ class LQTree {
       offsets[lvl] = floor((pow(4, lvl) - 1) / (4 - 1));
     }
     return offsets[lvl];
-  }
-  isPointerMax() {
-    return !(this.maxPointer > this.pointer);
   }
 }
 

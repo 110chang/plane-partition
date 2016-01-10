@@ -5,64 +5,55 @@
 
 require("native-promise-only");
 
-var ss = require("simple-statistics");
-var Color = require('color');
+let ss = require("simple-statistics");
+let Color = require('color');
 
-var Cells = require("./cells");
-var Morton = require("./morton");
-var LQTree = require("./lqtree");
-var LQNode = require("./lqnode");
-var NullNode = require("./nullnode");
+let Cells = require("./cells");
+let Morton = require("./morton");
+let LQTree = require("./lqtree");
+let LQNode = require("./lqnode");
+let NullNode = require("./nullnode");
 
-var round = Math.round;
-var pow = Math.pow;
+const pow = Math.pow;
 
 document.addEventListener('DOMContentLoaded', (e) => {
-  console.log('Entry point');
-  var imageData = [];
-
-  var loaded = new Promise((resolve, reject) => {
-    var src = document.getElementById('src');
+  //console.log('Entry point');
+  let loaded = new Promise((resolve, reject) => {
+    let src = document.getElementById('src');
     src.addEventListener('load', (e) => {
       resolve(src);
     });
   });
 
   loaded.then((src) => {
-    console.log('src loaded.');
-    var image = new Image();
+    console.log('image src loaded.');
+    let image = new Image();
     image.src = src.getAttribute('src');
 
-    var canvas = document.getElementById('place-holder');
+    let canvas = document.getElementById('place-holder');
     canvas.width = image.width;
     canvas.height = image.height;
 
-    var context = canvas.getContext('2d');
+    let context = canvas.getContext('2d');
     context.drawImage(image, 0, 0, image.width, image.height);
 
-    var dataArr = context.getImageData(0,0,image.width, image.height).data;
+    let dataArr = context.getImageData(0,0,image.width, image.height).data;
 
-    if (dataArr.length % 4 !== 0) {
-      throw new Error('data length incorrect.')
-    }
-
-    var cells = new Cells(dataArr, image.width, image.height);
-
-    var tree = new LQTree((node) => node.ro < 18);
-    var filter = (node) => node.ro < 18;
+    let cells = new Cells(dataArr, image.width, image.height);
+    let tree = new LQTree();
 
     console.time('register data');
-    while(!tree.isPointerMax()) {
+    while(!tree.isPointerExceeded()) {
 
       if (tree.isRegisteredBranch()) {
         tree.add(null);
       } else {
-        var temp = cells.find(tree.level, tree.morton);
+        let temp = cells.find(tree.level, tree.morton);
         
         // standard deviation of luminance
-        var ro = ss.standardDeviation(temp.map((cell) => cell.luminance));
+        let ro = ss.standardDeviation(temp.map((cell) => cell.luminance));
 
-        if (ro < 18 || tree.level === Morton.MAX_LVL) {
+        if (ro < 18 || tree.isMaxLevel()) {
           let l = temp.length;
 
           // color average
@@ -84,18 +75,20 @@ document.addEventListener('DOMContentLoaded', (e) => {
     }
     console.timeEnd('register data');
 
-    console.time('draw data 1');
+    let magnify = 2;
+
+    canvas.width = image.width * magnify;
+    canvas.height = image.height * magnify;
+
+    console.time('draw data');
     tree.data.forEach((node) => {
       if (node instanceof LQNode) {
         let color = Color().rgb([node.r, node.g, node.b])
         let positive = `rgb(${color.saturate(0.5).rgbArray().join(',')})`;
         //let negative = `rgb(${color.clone().negate().rgbArray().join(',')})`;
-        //let glow = `rgba(${color.clone().lighten(0.5).rgbArray().join(',')},0.2)`;
-        //let vivid = `rgb(${color.clone().saturate(0.5).rgbArray().join(',')},0.2)`;
         let w = image.width / pow(2, node.level);
         let h = image.height / pow(2, node.level);
         let m = Morton.reverse(node.morton);
-        let magnify = 1;
         let left = w * m.x * magnify;
         let right = w * m.x * magnify + w * magnify;
         let top = h * m.y * magnify;
@@ -107,7 +100,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
         context.beginPath();
         context.strokeStyle = '#FFF';
-        context.lineWidth = 0.2;
+        context.lineWidth = 0.1 * magnify;
         context.moveTo(left, top);
         context.lineTo(right, bottom);
         context.moveTo(right, top);
@@ -116,46 +109,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         context.stroke();
       }
     });
-    console.timeEnd('draw data 1');
-
-    console.time('draw data 2');
-    var finish = document.getElementById('finish');
-    finish.width = image.width * 2;
-    finish.height = image.height * 2;
-
-    var ctx_fin = finish.getContext('2d');
-    tree.data.forEach((node) => {
-      if (node instanceof LQNode) {
-        let color = Color().rgb([node.r, node.g, node.b])
-        let positive = `rgb(${color.saturate(0.5).rgbArray().join(',')})`;
-        //let negative = `rgb(${color.clone().negate().rgbArray().join(',')})`;
-        //let glow = `rgba(${color.clone().lighten(0.5).rgbArray().join(',')},0.2)`;
-        //let vivid = `rgb(${color.clone().saturate(0.5).rgbArray().join(',')},0.2)`;
-        let w = image.width / pow(2, node.level);
-        let h = image.height / pow(2, node.level);
-        let m = Morton.reverse(node.morton);
-        let magnify = 2;
-        let left = w * m.x * magnify;
-        let right = w * m.x * magnify + w * magnify;
-        let top = h * m.y * magnify;
-        let bottom = h * m.y * magnify + h * magnify;
-
-        ctx_fin.beginPath();
-        ctx_fin.fillStyle = positive;
-        ctx_fin.fillRect(left, top, w * magnify, h * magnify);
-
-        ctx_fin.beginPath();
-        ctx_fin.strokeStyle = 'rgba(255,255,255,0.6)';
-        ctx_fin.lineWidth = 0.3;
-        ctx_fin.moveTo(left, top);
-        ctx_fin.lineTo(right, bottom);
-        ctx_fin.moveTo(right, top);
-        ctx_fin.lineTo(left, bottom);
-        ctx_fin.closePath();
-        ctx_fin.stroke();
-      }
-    });
-    console.timeEnd('draw data 2');
+    console.timeEnd('draw data');
   });
 }, false);
 

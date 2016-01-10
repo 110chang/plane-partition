@@ -1,7 +1,7 @@
 
 'use strict';
 
-var NullNode = require("./nullnode");
+let NullNode = require("./nullnode");
 
 // Liner Quaternary Node
 

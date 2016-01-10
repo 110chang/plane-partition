@@ -1,35 +1,10 @@
 
 'use strict';
 
-//morton.js
-//morton order <=> x, y
+// Morton Order
 
-//http://d.hatena.ne.jp/ranmaru50/20111106/1320559955
-//http://marupeke296.com/COL_2D_No8_QuadTree.html
-
-//(45).toString(2) // "101101"
-// 10 => 2 : parent parent space
-// 11 => 3 : parent space
-// 01 => 1 : self space
-
-// yx
-// 10
-
-/*
-y\x 0  1
-  -------
-0 |00|01|
-  -------
-1 |10|11|
-  -------
-*/
-
-// "101101" AND "01010101010101010101010101010101"
-// "000101"
-// "010110" AND "01010101010101010101010101010101"
-// "010100"
-
-var spaceFilters = [];
+// ref. http://d.hatena.ne.jp/ranmaru50/20111106/1320559955
+// ref. http://marupeke296.com/COL_2D_No8_QuadTree.html
 
 class Morton {
   static create(x, y) {
@@ -54,8 +29,6 @@ class Morton {
     return (n & 0x0000ffff) | ((n & 0x00ff0000) >> 8);
   }
   static belongs(a, b, lvl, max = Morton.MAX_LVL) {
-    //let f = Math.pow(2, lvl * 2) - 1 << (max - lvl) * 2;
-    //return ((a & f) >> (max - lvl) * 2) === b;
     return a >> (max - lvl) * 2 === b;
   }
 }

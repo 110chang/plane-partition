@@ -3,7 +3,7 @@
 
 //mortonSpec.js
 
-var Morton = require('../src/js/morton');
+let Morton = require('../src/js/morton');
 
 describe('Morton', function() {
   beforeEach(() => {

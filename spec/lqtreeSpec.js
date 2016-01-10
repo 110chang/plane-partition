@@ -6,13 +6,10 @@
 var LQTree = require('../src/js/lqtree');
 var Morton = require("../src/js/morton");
 
-// filter omit zero data
-var filter = (node) => node && node.value > 0;
-
 function registerSample(tree, sample) {
   sample = sample.split('').map((n) => ~~n);
   //tree = new LQTree((node) => node && node.value > 0);
-  while(!tree.isPointerMax()) {
+  while(!tree.isPointerExceeded()) {
     //console.log(tree.getParent());
     let node = sample[tree.pointer] !== undefined ? {
       value: sample[tree.pointer]
@@ -26,8 +23,8 @@ function registerSample(tree, sample) {
 describe('LQTree', function() {
   var tree, tree2;
   beforeEach(() => {
-    tree = new LQTree(filter);
-    tree2 = new LQTree(filter);
+    tree = new LQTree();
+    tree2 = new LQTree();
   });
 
   it('should create instance', function() {
@@ -39,7 +36,7 @@ describe('LQTree', function() {
   });
 
   it('should stop when maximum pointer is exceeded', function() {
-    while(!tree.isPointerMax()) {
+    while(!tree.isPointerExceeded()) {
       tree.add();
     }
     expect(tree.pointer).toBe(tree.getOffset(Morton.MAX_LVL + 1));
@@ -53,16 +50,6 @@ describe('LQTree', function() {
     "_".repeat(16).split('').forEach(() => tree.add());
     expect(tree.level).toBe(3);
   });
-
-  it('should filter node', function() {
-
-    //var result = registerSample(tree, '101210112130101111011');
-    //var result2 = registerSample(tree2, '121001123001221111011');
-    //console.log(tree.data);
-    //expect(result.join('')).toBe('101210000130101111011');
-    //expect(result2.join('')).toBe('121001123001200000000');
-  });
-
 });
 
 

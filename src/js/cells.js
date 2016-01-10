@@ -3,12 +3,12 @@
 
 //cells.js
 
-var Cell = require('./cell');
-var Morton = require('./morton');
+let Cell = require('./cell');
+let Morton = require('./morton');
 
-var floor = Math.floor;
-var round = Math.round;
-var pow = Math.pow;
+const floor = Math.floor;
+const round = Math.round;
+const pow = Math.pow;
 
 class Cells {
   constructor(data, width, height) {
@@ -20,9 +20,9 @@ class Cells {
     this.register(data, width, height);
   }
   register(data, width, height) {
-    var x = 0;
-    var y = 0;
-    var u = pow(2, Morton.MAX_LVL);
+    let x = 0;
+    let y = 0;
+    let u = pow(2, Morton.MAX_LVL);
     console.time('read data');
     for (let i = 0; i < data.length; i += 4) {
       let r = data[i];
@@ -43,12 +43,15 @@ class Cells {
   find(lvl, morton) {
     let field = this.data;
     let result;
+
     if (this.mem[lvl - 1] && this.mem[lvl - 1][morton >> 2]) {
       field = this.mem[lvl - 1][morton >> 2];
     }
+
     result = field.filter((cell) => {
       return Morton.belongs(cell.morton, morton, lvl);
     });
+
     if (!this.mem[lvl]) {
       this.mem[lvl] = {};
     }
